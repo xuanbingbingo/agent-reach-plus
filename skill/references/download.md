@@ -27,27 +27,42 @@ opencli xiaohongshu download "<带 xsec_token 的笔记完整URL>" --output DIR
 ```
 - 图文笔记下全部图，视频笔记下 mp4，无水印。URL 从 `opencli xiaohongshu search` 结果取（含 xsec_token）。
 
-## 抖音（两法，都先抓分享页拿 sec_uid / aweme_id）
+## 抖音（⭐主路径=分享页直抠 play_url，不绕 sec_uid）
+
+> **为什么不走 sec_uid + user-videos 当主路径**（实测 2026-06-23 踩坑）：
+> - 分享页 DOM 里 `MS4wLjABAAAA…` 串一大堆，但**不全是作者**：①重定向 URL 自带的 `did=`/`iid=` 是设备号/安装号，同格式；②页面底部「相关推荐」位挂一排别人的视频+头像，各带各自作者 sec_uid。「抠第一个」经常拿到设备号或推荐位别人的号。
+> - 就算 sec_uid 抠对，`user-videos` 默认只返回最近 ~14 条，目标视频稍早就命中不到。
+> 结论：分享页 HTML 本身就含 `douyinvod` 播放链接，且带 `__vid=<aweme_id>` 可精确校验——直接抠它，不用猜作者、不受分页限制。
 
 ```bash
-# 拿 aweme_id：
-curl -sIL "https://v.douyin.com/XXXX/" -A "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0)" | grep -i "^location"   # 抠 /video/(数字)
-# 拿作者 sec_uid：
-curl -s "https://www.iesdouyin.com/share/video/<aweme_id>/?from_ssr=1" -A "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0) AppleWebKit/605.1.15" \
-  | grep -oE "MS4wLjABAAAA[A-Za-z0-9_-]{20,}" | sort -u
+# 第1步 拿 aweme_id：只读重定向头，curl 仍可用
+curl -sIL "https://v.douyin.com/XXXX/" | grep -i "^location"   # 抠 /share/video/(数字)
+
+# 第2步 打开 iesdouyin 分享页（需 Chrome 开着+登录抖音，等 ~2s 渲染）
+opencli browser dy open "https://www.iesdouyin.com/share/video/<aweme_id>/?from_ssr=1"
+
+# 第3步 ⭐直抠：从页面 HTML grep douyinvod 链接，自带 __vid 校验是不是这条视频
+opencli browser dy eval "(()=>{var h=document.documentElement.outerHTML;var m=h.match(/https?:[^\"'\\\\ ]*douyinvod[^\"'\\\\ ]*/g)||[];return JSON.stringify(m.filter(u=>u.indexOf('__vid=<aweme_id>')>-1).slice(0,2));})()"
+#   抠不到时再看 video 元素：document.querySelector('video').src / .currentSrc
+
+# 第4步 解码 &amp;→& 后下载（play_url 带时效签名+地区锁，过期/SSL报错就重取一次）
+curl -L -H "Referer: https://www.douyin.com/" -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15" "<play_url>" -o ~/Desktop/标题.mp4
 ```
+> ⚠️ **不要裸 curl iesdouyin 分享页**：抖音风控经常把裸 curl 返回成 0 字节（时好时坏），统一走 `opencli browser open` + eval。
+> ⚠️ 别用 `douyin.com/video/<id>` 页——推荐位污染更重；必须用 **iesdouyin 分享页**。
 
-**A 首选（画质高到 1080p，要 Chrome 登录抖音）：**
+**兜底 A（主路径第3步抠不到 douyinvod、页面没渲出 video 时才用）：sec_uid → user-videos**
 ```bash
-opencli douyin user-videos "<真sec_uid>" --limit 20 -f json    # 找到目标 aweme 的 play_url
+# 先抠候选 sec_uid（去重取前几个），逐个试 user-videos 找目标 aweme_id 命中
+opencli browser dy eval "(()=>{var h=document.documentElement.outerHTML;var s=(h.match(/MS4wLjABAAAA[A-Za-z0-9_-]{20,}/g)||[]);return JSON.stringify(s.filter((v,i,a)=>a.indexOf(v)===i).slice(0,4));})()"
+opencli douyin user-videos "<真sec_uid>" --limit 20 -f json    # 按 aweme_id 命中取 play_url；对不上换下一个候选
 curl -L "<play_url>" -H "Referer: https://www.douyin.com/" -o out.mp4
 ```
 > ⚠️ `user-videos` 传**数字 uid 会回退成你自己的号**，必须传**真 sec_uid**（`MS4wLjABAAAA…`）。
 
-**B 兜底（免登录、不用 opencli，720p）：**
-解析上面分享页的 `window._ROUTER_DATA` JSON → 递归找 `play_addr.url_list[0]`（形如 `aweme.snssdk.com/aweme/v1/playwm/?video_id=...`）→ 把 `playwm` 改 `play` 去水印 → `curl -L "<url>" -A "<移动UA>" -H "Referer: https://www.douyin.com/" -o out.mp4`。
+**兜底 B（免登录、720p）：** 解析分享页 `window._ROUTER_DATA` → 递归找 `play_addr.url_list[0]`（`aweme.snssdk.com/aweme/v1/playwm/?video_id=...`）→ `playwm` 改 `play` 去水印 → curl（带移动 UA + Referer）。
 
-> 选择：要高画质走 A（需登录）；图省事/没登录走 B（720p）。yt-dlp 抖音解析器已过期，别用。
+> yt-dlp 抖音解析器已过期，别用。
 
 ## 整个作者批量下载
 
