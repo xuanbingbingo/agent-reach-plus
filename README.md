@@ -30,6 +30,23 @@ bash install.sh
 
 验证：`agent-reach doctor --json`（抖音应 `status: ok`）。
 
+> 平台：**macOS / Linux 原生支持**。安装与下载流程已在隔离沙盒端到端验证（agent-reach 装源、抖音渠道注入、BBDown、skill 部署全通过）。
+
+## Windows 用户（实测说明）
+
+原生 Windows **不支持**直接跑 `install.sh`（它是 bash 脚本，且裸 Win 缺 bash/pipx/node/git）。实测一台干净 Win11 上 git/node/npm/pipx/bash 全无、python 只是商店占位别名。Windows 走 **WSL**：
+
+```powershell
+wsl --install -d Ubuntu        # 管理员 PowerShell，装完重启
+```
+```bash
+# 进 Ubuntu 后：
+sudo apt update && sudo apt install -y python3-pip nodejs npm git pipx ffmpeg
+git clone <本仓库> agent-reach-plus && cd agent-reach-plus && bash install.sh
+```
+
+⚠️ **WSL 下的限制**：OpenCLI 类渠道（**抖音 / 小红书 / Twitter / Reddit**）靠 Chrome 扩展，守护进程在 WSL、Chrome 在 Windows，localhost 桥接跨界通常不通。**YouTube(yt-dlp) / B站(BBDown) / GitHub / 雪球 / RSS / 全网搜 / 网页**不受影响，可正常用。`install.sh` 在 git-bash/MSYS 下会直接给出以上指引并退出。
+
 ## 抖音用法
 
 ```bash

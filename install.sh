@@ -4,6 +4,25 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# —— Windows 守卫：本脚本是 bash，面向 macOS / Linux / WSL ——
+case "$(uname -s 2>/dev/null)" in
+  MINGW*|MSYS*|CYGWIN*)
+    cat <<'WIN'
+检测到 Windows（git-bash / MSYS / Cygwin）。本安装脚本面向 macOS / Linux / WSL，
+原生 Windows 缺 bash/pipx/node 等前置，无法直接跑。
+
+Windows 用户请用 WSL：
+  1) 管理员 PowerShell 执行：wsl --install -d Ubuntu  （需重启）
+  2) 进 Ubuntu 后：sudo apt update && sudo apt install -y python3-pip nodejs npm git pipx ffmpeg
+  3) 在 Ubuntu 里重新 clone 本仓库并跑：bash install.sh
+
+⚠️ 已知限制：WSL 下 OpenCLI 类渠道（抖音/小红书/Twitter/Reddit）依赖 Chrome 扩展，
+   守护进程在 WSL、Chrome 在 Windows，localhost 桥接跨界通常不通；
+   YouTube(yt-dlp) / B站(BBDown) / GitHub / 雪球 / RSS / 网页搜索等不受影响。
+WIN
+    exit 1 ;;
+esac
+
 echo "▶ 1/5 安装/更新 agent-reach (pipx)"
 if ! command -v pipx >/dev/null 2>&1; then
   echo "  ❌ 没有 pipx。先装：python3 -m pip install --user pipx && python3 -m pipx ensurepath"
