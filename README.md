@@ -64,29 +64,27 @@ opencli douyin hashtag <action> -f yaml         # 话题热点词
 opencli douyin stats <aweme_id> -f yaml         # 作品数据
 ```
 
-> `user-videos` 必须用 **sec_uid**（传数字 uid 会回退成自己）。拿 sec_uid：短链 `v.douyin.com` 解析出 aweme_id → 抓 `iesdouyin.com/share/video/<aweme_id>/?from_ssr=1` 用正则 `MS4wLjABAAAA[A-Za-z0-9_-]{20,}` 抠作者 sec_uid。
+> `user-videos` 必须用 **sec_uid**（传数字 uid 会回退成自己的号）。
 
-### 下载视频（A 首选画质高 / B 兜底免登录）
+### 下载单条视频（⭐主路径 = 分享页直抠 play_url）
 
-两种方法**都能下别人的作品**，都先抓分享页拿 sec_uid/aweme_id，区别只在最后取流：
+> 详细命令与重试链以 [`skill/references/download.md`](skill/references/download.md) 为准；这里是速览。
 
-| | A：opencli（首选） | B：reflow 页（兜底） |
-|---|---|---|
-| 取流 | `user-videos <真sec_uid>` 返回的 `play_url` | 分享页 `_ROUTER_DATA` 里的 `play_addr` |
-| 画质 | **高，实测到 1080p / 4Mbps** | 较低，720p 转码 |
-| 依赖 | **要 Chrome 开 + 登录抖音** | **纯 curl，免登录、不用 opencli** |
+**为什么默认不绕 sec_uid**：分享页 DOM 里 `MS4wLjABAAAA…` 一大堆但不全是作者（重定向 URL 自带的 `did=`/`iid=` 是设备号、底部推荐位挂别人的号），「抠第一个」常拿错；且 `user-videos` 只返回最近 ~14 条，目标稍早就命中不到。所以**直接从分享页抠播放链接、用 `__vid` 校验**最稳。
 
 ```bash
-# A（高画质，要登录）：
-opencli douyin user-videos <真sec_uid> --limit 20 -f json   # 取每条 play_url
-curl -L "<play_url>" -H "Referer: https://www.douyin.com/" -o out.mp4
-
-# B（免登录，720p）：解析分享页 _ROUTER_DATA → play_addr.url_list[0]
-#   把 URL 里的 playwm 改成 play 去水印，再 curl（带移动 UA + Referer）
+# 1. 短链 → aweme_id（只读重定向头）
+curl -sIL "https://v.douyin.com/XXXX/" | grep -i "^location"        # 抠 /share/video/(数字)
+# 2. opencli 打开 iesdouyin 分享页（要 Chrome 开 + 登录抖音，等 ~2s 渲染）
+opencli browser dy open "https://www.iesdouyin.com/share/video/<aweme_id>/?from_ssr=1"
+# 3. ⭐直抠：grep 页面里 douyinvod 链接，过滤 __vid=<aweme_id> 的那条 = play_url
+# 4. 解码 &amp;→& 后下载（play_url 带时效签名+地区锁，过期就重取一次）
+curl -L -H "Referer: https://www.douyin.com/" -H "User-Agent: Mozilla/5.0..." "<play_url>" -o out.mp4
 ```
 
-> ⚠️ 坑：`user-videos` 传**数字 uid 会回退成你自己的号**，必须传真 sec_uid。
-> yt-dlp 的抖音解析器已过期（encrypt_data_miss / Fresh cookies needed），别用。两种方法都拿不到作者原始母带。
+**抠不到时的兜底**：① sec_uid → `opencli douyin user-videos <真sec_uid> -f json` 按 aweme_id 命中取 play_url（⚠️必须传真 sec_uid，数字 uid 会回退成自己的号）；② 免登录 720p：解析分享页 `_ROUTER_DATA` → `play_addr.url_list[0]`，`playwm` 改 `play` 去水印再 curl。
+
+> yt-dlp 的抖音解析器已过期（encrypt_data_miss / Fresh cookies needed），别用。
 
 ## 维护说明
 

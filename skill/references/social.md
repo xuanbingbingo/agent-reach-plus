@@ -79,7 +79,9 @@ opencli douyin stats AWEME_ID -f yaml
 
 > 要求 Chrome 打开且登录 douyin.com（`opencli douyin whoami` 验证）。报登录错就让用户在 Chrome 登一次。
 >
-> **sec_uid 怎么拿**: `user-videos` 必须用 sec_uid，传数字 uid 会回退成自己的号。从分享页抠：`curl -s "https://www.iesdouyin.com/share/video/AWEME_ID/?from_ssr=1" -A "Mozilla/5.0 (iPhone)" | grep -oE "MS4wLjABAAAA[A-Za-z0-9_-]{20,}" | sort -u`（AWEME_ID 由短链 v.douyin.com 解析得到）。
+> **sec_uid 怎么拿**(仅数据渠道 user-videos/search 用): 必须传真 sec_uid，数字 uid 会回退成自己的号。从分享页抠：`curl -s "https://www.iesdouyin.com/share/video/AWEME_ID/?from_ssr=1" -A "Mozilla/5.0 (iPhone)" | grep -oE "MS4wLjABAAAA[A-Za-z0-9_-]{20,}" | sort -u`（AWEME_ID 由短链 v.douyin.com 解析得到）。
+>
+> ⬇️ **下载单条视频别走 sec_uid**：主路径是分享页直抠 play_url（过滤 `__vid`），详见 [`download.md`](download.md)。sec_uid→user-videos 只是抠不到时的兜底。
 
 ## Twitter/X (twitter-cli)
 
