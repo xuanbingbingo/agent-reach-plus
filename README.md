@@ -39,6 +39,28 @@ opencli douyin stats <aweme_id> -f yaml         # 作品数据
 
 > `user-videos` 必须用 **sec_uid**（传数字 uid 会回退成自己）。拿 sec_uid：短链 `v.douyin.com` 解析出 aweme_id → 抓 `iesdouyin.com/share/video/<aweme_id>/?from_ssr=1` 用正则 `MS4wLjABAAAA[A-Za-z0-9_-]{20,}` 抠作者 sec_uid。
 
+### 下载视频（A 首选画质高 / B 兜底免登录）
+
+两种方法**都能下别人的作品**，都先抓分享页拿 sec_uid/aweme_id，区别只在最后取流：
+
+| | A：opencli（首选） | B：reflow 页（兜底） |
+|---|---|---|
+| 取流 | `user-videos <真sec_uid>` 返回的 `play_url` | 分享页 `_ROUTER_DATA` 里的 `play_addr` |
+| 画质 | **高，实测到 1080p / 4Mbps** | 较低，720p 转码 |
+| 依赖 | **要 Chrome 开 + 登录抖音** | **纯 curl，免登录、不用 opencli** |
+
+```bash
+# A（高画质，要登录）：
+opencli douyin user-videos <真sec_uid> --limit 20 -f json   # 取每条 play_url
+curl -L "<play_url>" -H "Referer: https://www.douyin.com/" -o out.mp4
+
+# B（免登录，720p）：解析分享页 _ROUTER_DATA → play_addr.url_list[0]
+#   把 URL 里的 playwm 改成 play 去水印，再 curl（带移动 UA + Referer）
+```
+
+> ⚠️ 坑：`user-videos` 传**数字 uid 会回退成你自己的号**，必须传真 sec_uid。
+> yt-dlp 的抖音解析器已过期（encrypt_data_miss / Fresh cookies needed），别用。两种方法都拿不到作者原始母带。
+
 ## 维护说明
 
 - 抖音渠道靠 `patches/apply.py` 注入到已安装的 agent-reach。**`agent-reach` 升级后重跑一次** `python3 patches/apply.py`（用 agent-reach 的 venv python）即可恢复。
