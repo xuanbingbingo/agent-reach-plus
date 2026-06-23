@@ -1,7 +1,13 @@
 ﻿# agent-reach-plus · Windows 原生安装器 (PowerShell)
 # = 官方 agent-reach + 抖音渠道 + skill，全部跑在原生 Windows（不用 WSL）
 # 用法：在 PowerShell 里  cd 到本仓库目录，执行：  powershell -ExecutionPolicy Bypass -File .\install.ps1
-$ErrorActionPreference = 'Stop'
+# Continue（不要 Stop）：pipx/agent-reach 会把正常进度写到 stderr，
+# Stop 下会被当成终止错误中断安装。真失败靠下面的 Have/Test-Path 显式判断。
+$ErrorActionPreference = 'Continue'
+# 让 Python/控制台用 UTF-8：否则中文 Windows 默认 GBK，agent-reach 打印 emoji(✨)会崩
+$env:PYTHONUTF8 = '1'
+$env:PYTHONIOENCODING = 'utf-8'
+try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; chcp 65001 > $null } catch {}
 $HERE = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 function Have($c) { [bool](Get-Command $c -ErrorAction SilentlyContinue) }
