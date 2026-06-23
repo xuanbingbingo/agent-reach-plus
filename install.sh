@@ -4,7 +4,7 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "▶ 1/4 安装/更新 agent-reach (pipx)"
+echo "▶ 1/5 安装/更新 agent-reach (pipx)"
 if ! command -v pipx >/dev/null 2>&1; then
   echo "  ❌ 没有 pipx。先装：python3 -m pip install --user pipx && python3 -m pipx ensurepath"
   echo "     然后重开终端再跑本脚本。"
@@ -12,10 +12,35 @@ if ! command -v pipx >/dev/null 2>&1; then
 fi
 pipx install agent-reach 2>/dev/null || pipx upgrade agent-reach || true
 
-echo "▶ 2/4 安装渠道工具（OpenCLI / bili-cli 等）"
+echo "▶ 2/5 安装渠道工具（OpenCLI / bili-cli 等）"
 agent-reach install || echo "  ⚠️ agent-reach install 有非致命报错，继续。"
 
-echo "▶ 3/4 注入抖音渠道补丁"
+echo "▶ 3/5 安装 BBDown（B站视频下载，便携版）"
+case "$(uname -s)-$(uname -m)" in
+  Darwin-arm64)   BB_PAT="osx-arm64" ;;
+  Darwin-x86_64)  BB_PAT="osx-x64" ;;
+  Linux-x86_64)   BB_PAT="linux-x64" ;;
+  Linux-aarch64)  BB_PAT="linux-arm64" ;;
+  *)              BB_PAT="" ;;
+esac
+if [ -z "$BB_PAT" ]; then
+  echo "  ⚠️ 未识别平台（$(uname -s)-$(uname -m)），跳过 BBDown。B站下载需手动装：https://github.com/nilaoda/BBDown/releases"
+elif [ -x "$HOME/.agent-reach/bin/BBDown" ]; then
+  echo "  ℹ️ BBDown 已存在，跳过。"
+else
+  mkdir -p "$HOME/.agent-reach/bin"
+  BB_URL="$(curl -fsSL "https://api.github.com/repos/nilaoda/BBDown/releases/latest" 2>/dev/null \
+            | grep -oE "https://[^\"]*BBDown[^\"]*${BB_PAT}\.zip" | head -1)"
+  if [ -n "$BB_URL" ] && curl -fsSL "$BB_URL" -o /tmp/bbdown.zip 2>/dev/null; then
+    unzip -o -q /tmp/bbdown.zip -d "$HOME/.agent-reach/bin" && chmod +x "$HOME/.agent-reach/bin/BBDown" 2>/dev/null
+    rm -f /tmp/bbdown.zip
+    echo "  ✅ BBDown → ~/.agent-reach/bin/BBDown（B站合流需系统装 ffmpeg）"
+  else
+    echo "  ⚠️ 没拉到 BBDown，B站下载可稍后手动装：https://github.com/nilaoda/BBDown/releases"
+  fi
+fi
+
+echo "▶ 4/5 注入抖音渠道补丁"
 VENV_BASE="$(pipx environment --value PIPX_LOCAL_VENVS 2>/dev/null || true)"
 VENV_PY="${VENV_BASE:-$HOME/.local/pipx/venvs}/agent-reach/bin/python"
 if [ ! -x "$VENV_PY" ]; then
@@ -23,7 +48,7 @@ if [ ! -x "$VENV_PY" ]; then
 fi
 "$VENV_PY" "$HERE/patches/apply.py"
 
-echo "▶ 4/4 部署 skill → ~/.claude/skills/agent-reach/"
+echo "▶ 5/5 部署 skill → ~/.claude/skills/agent-reach/"
 DEST="$HOME/.claude/skills/agent-reach"
 mkdir -p "$DEST/references"
 cp "$HERE/skill/SKILL.md" "$DEST/SKILL.md"
@@ -45,4 +70,9 @@ cat <<'EOF'
 
 验证全部渠道：agent-reach doctor --json
 （抖音应显示 status: ok / active_backend: OpenCLI）
+
+装好后，在你的 agent 窗口直接说一句即可下载视频，例如：
+  「帮我下载这个链接的视频 <粘贴 YouTube/B站/小红书/抖音 链接>」
+  → 自动认平台、选工具、下到本地。
+  （B站合流需系统装 ffmpeg：brew install ffmpeg / apt install ffmpeg）
 EOF

@@ -8,7 +8,9 @@
 
 agent-reach 是一个"互联网能力路由器"——一条命令访问 13 个平台（GitHub / YouTube / B站 / 小红书 / Twitter / Reddit / V2EX / 雪球 / 小宇宙 / LinkedIn / RSS / Exa 全网搜 / 任意网页）做调研。
 
-**plus 版多了第 14 个渠道:抖音**（搜索 / 取作品 / 话题热点 / 作品数据 / 视频直链），后端走 OpenCLI 复用浏览器登录态。
+**plus 版多了**：
+- 第 14 个渠道 **抖音**（搜索 / 取作品 / 话题热点 / 作品数据 / 视频直链），后端走 OpenCLI 复用浏览器登录态。
+- **一句话下视频**：装好后，在你的 agent 窗口直接说「帮我下载这个链接的视频 + 链接」，自动认平台（YouTube / B站 / 小红书 / 抖音）→ 选对工具 → 下到本地。见 [skill/references/download.md](skill/references/download.md)。
 
 ## 安装
 

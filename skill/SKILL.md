@@ -33,6 +33,7 @@ triggers:
   - dev: github/代码/仓库/gh/issue/pr/分支/commit
   - web: 网页/链接/文章/rss/读一下/打开这个
   - video: youtube/视频/播客/字幕/小宇宙/转录/yt
+  - download: 下视频/下下来/下载这个/帮我下载/把这个视频下/下到桌面/下到本地
   - finance: 雪球/股票/stock/xueqiu/行情/基金
 metadata:
   openclaw:
@@ -66,6 +67,7 @@ metadata:
 | GitHub/代码 | dev | [references/dev.md](references/dev.md) |
 | 网页/文章/RSS | web | [references/web.md](references/web.md) |
 | YouTube/B站/播客字幕 | video | [references/video.md](references/video.md) |
+| 下载视频/图文到本地（YouTube/B站/小红书/抖音） | download | [references/download.md](references/download.md) |
 
 ## 零配置快速命令
 
