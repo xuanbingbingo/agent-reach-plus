@@ -8,17 +8,15 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 case "$(uname -s 2>/dev/null)" in
   MINGW*|MSYS*|CYGWIN*)
     cat <<'WIN'
-检测到 Windows（git-bash / MSYS / Cygwin）。本安装脚本面向 macOS / Linux / WSL，
-原生 Windows 缺 bash/pipx/node 等前置，无法直接跑。
+检测到 Windows（git-bash / MSYS / Cygwin）。本 bash 脚本面向 macOS / Linux。
 
-Windows 用户请用 WSL：
-  1) 管理员 PowerShell 执行：wsl --install -d Ubuntu  （需重启）
-  2) 进 Ubuntu 后：sudo apt update && sudo apt install -y python3-pip nodejs npm git pipx ffmpeg
-  3) 在 Ubuntu 里重新 clone 本仓库并跑：bash install.sh
+Windows 用户请改用原生 PowerShell 安装器（推荐，抖音/小红书等全可用）：
+  在仓库目录下的 PowerShell 执行：
+      powershell -ExecutionPolicy Bypass -File .\install.ps1
 
-⚠️ 已知限制：WSL 下 OpenCLI 类渠道（抖音/小红书/Twitter/Reddit）依赖 Chrome 扩展，
-   守护进程在 WSL、Chrome 在 Windows，localhost 桥接跨界通常不通；
-   YouTube(yt-dlp) / B站(BBDown) / GitHub / 雪球 / RSS / 网页搜索等不受影响。
+（或备选 WSL：wsl --install -d Ubuntu，进 Ubuntu 后 apt 装 python3-pip nodejs npm git pipx ffmpeg
+  再 bash install.sh —— 但 WSL 下 OpenCLI 类渠道[抖音/小红书/Twitter/Reddit]的 Chrome 扩展
+  跨 WSL↔Windows 边界通常不通，只有 YouTube/B站/GitHub/雪球/RSS/网页可用。要抖音就用 install.ps1。）
 WIN
     exit 1 ;;
 esac

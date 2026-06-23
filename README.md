@@ -32,20 +32,24 @@ bash install.sh
 
 > 平台：**macOS / Linux 原生支持**。安装与下载流程已在隔离沙盒端到端验证（agent-reach 装源、抖音渠道注入、BBDown、skill 部署全通过）。
 
-## Windows 用户（实测说明）
+## Windows 用户（原生，推荐）
 
-原生 Windows **不支持**直接跑 `install.sh`（它是 bash 脚本，且裸 Win 缺 bash/pipx/node/git）。实测一台干净 Win11 上 git/node/npm/pipx/bash 全无、python 只是商店占位别名。Windows 走 **WSL**：
+Windows 用 **`install.ps1`**（原生 PowerShell，不用 WSL，抖音/小红书等全可用，因为 opencli 和 Chrome 都在 Windows 本机）：
 
 ```powershell
-wsl --install -d Ubuntu        # 管理员 PowerShell，装完重启
-```
-```bash
-# 进 Ubuntu 后：
-sudo apt update && sudo apt install -y python3-pip nodejs npm git pipx ffmpeg
-git clone <本仓库> agent-reach-plus && cd agent-reach-plus && bash install.sh
+# 在仓库目录下，PowerShell 执行：
+powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-⚠️ **WSL 下的限制**：OpenCLI 类渠道（**抖音 / 小红书 / Twitter / Reddit**）靠 Chrome 扩展，守护进程在 WSL、Chrome 在 Windows，localhost 桥接跨界通常不通。**YouTube(yt-dlp) / B站(BBDown) / GitHub / 雪球 / RSS / 全网搜 / 网页**不受影响，可正常用。`install.sh` 在 git-bash/MSYS 下会直接给出以上指引并退出。
+脚本会：**自提权**（弹一次 UAC 点"是"）→ winget 装 Python/Node/Git/ffmpeg → pipx 装 agent-reach → 注入抖音渠道 → 下 BBDown.exe → 部署 skill 到 `%USERPROFILE%\.claude\skills\agent-reach`。装完同样需手动：装 OpenCLI Chrome 扩展、登录平台、（可选）配 Groq key。
+
+> 干净 Win11 实测要点（已据此适配）：winget 自带可用；机器级 winget 安装会弹 **UAC 安全桌面**（故脚本自提权，一次过）；裸系统 git/node/pipx/bash 全无、python 是商店占位别名（故用 winget 实装 + `py` 启动器）。Win11 ARM 会自动取 BBDown 的 `win-arm64` 包。
+>
+> ⚠️ 诚实标注：install.ps1 已做**语法校验 + 关键 Windows 行为在真机 Win11 ARM 验证**（winget/UAC/架构）；但**完整安装链尚未在 Windows 上一次性跑到底**（首次运行请留意 winget 下载与 UAC）。遇问题提 issue。
+
+### 备选：WSL
+
+也可在 WSL(Ubuntu) 里跑 `install.sh`（走 Linux 路径）。但 **WSL 下 OpenCLI 类渠道（抖音/小红书/Twitter/Reddit）的 Chrome 扩展跨 WSL↔Windows 边界通常不通**，只有 YouTube/B站/GitHub/雪球/RSS/网页可用。所以要抖音/小红书，**用上面的原生 `install.ps1`，不要用 WSL**。`install.sh` 在 git-bash/MSYS 下会直接给 WSL 指引并退出。
 
 ## 抖音用法
 
@@ -93,11 +97,12 @@ curl -L "<play_url>" -H "Referer: https://www.douyin.com/" -o out.mp4
 
 ```
 agent-reach-plus/
-├── install.sh          一键安装
+├── install.sh          一键安装（macOS / Linux / WSL）
+├── install.ps1         一键安装（Windows 原生，自提权）
 ├── README.md
 ├── LICENSE             原始 MIT（Agent Eyes）
-├── skill/              SKILL.md + references（含抖音文档）
+├── skill/              SKILL.md + references（含抖音 + download 下载流程）
 └── patches/
     ├── douyin.py       抖音渠道源码
-    └── apply.py        幂等注入器
+    └── apply.py        幂等注入器（跨平台）
 ```
