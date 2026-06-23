@@ -1,4 +1,4 @@
-# agent-reach-plus · Windows 原生安装器 (PowerShell)
+﻿# agent-reach-plus · Windows 原生安装器 (PowerShell)
 # = 官方 agent-reach + 抖音渠道 + skill，全部跑在原生 Windows（不用 WSL）
 # 用法：在 PowerShell 里  cd 到本仓库目录，执行：  powershell -ExecutionPolicy Bypass -File .\install.ps1
 $ErrorActionPreference = 'Stop'
