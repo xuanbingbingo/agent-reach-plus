@@ -43,9 +43,13 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 
 脚本会：**自提权**（弹一次 UAC 点"是"）→ winget 装 Python/Node/Git/ffmpeg → pipx 装 agent-reach → 注入抖音渠道 → 下 BBDown.exe → 部署 skill 到 `%USERPROFILE%\.claude\skills\agent-reach`。装完同样需手动：装 OpenCLI Chrome 扩展、登录平台、（可选）配 Groq key。
 
-> 干净 Win11 实测要点（已据此适配）：winget 自带可用；机器级 winget 安装会弹 **UAC 安全桌面**（故脚本自提权，一次过）；裸系统 git/node/pipx/bash 全无、python 是商店占位别名（故用 winget 实装 + `py` 启动器）。Win11 ARM 会自动取 BBDown 的 `win-arm64` 包。
+> **已在真机 Win11 ARM 上端到端验证跑通**（前置工具 → agent-reach → 抖音渠道注入 → BBDown.exe → skill 部署，全程到绿色"完成"）。测试中发现并修掉的 4 个 Windows 坑（现已内置处理）：
+> 1. `agent-reach` 不在 PyPI → 装源用 GitHub `main.zip`；
+> 2. 机器级 winget 安装弹 **UAC 安全桌面** → 脚本**自提权**，开头点一次"是"即可，后续不再弹；
+> 3. 中文 Windows 控制台默认 GBK，Python 打印 emoji(✨) 会崩 → 脚本设 `PYTHONUTF8` + `chcp 65001`；
+> 4. pipx/agent-reach 把进度写 stderr 被 `Stop` 误判终止 → 改 `Continue`，真失败靠显式判断。
 >
-> ⚠️ 诚实标注：install.ps1 已做**语法校验 + 关键 Windows 行为在真机 Win11 ARM 验证**（winget/UAC/架构）；但**完整安装链尚未在 Windows 上一次性跑到底**（首次运行请留意 winget 下载与 UAC）。遇问题提 issue。
+> 另：裸系统 git/node/pipx 全无、python 是商店占位别名（故用 winget 实装 + `py` 启动器）；`install.ps1` 存为 UTF-8 BOM（否则 PS 5.1 按 GBK 读中文乱码）；Win11 ARM 自动取 BBDown 的 `win-arm64` 包。
 
 ### 备选：WSL
 
