@@ -10,7 +10,9 @@ if ! command -v pipx >/dev/null 2>&1; then
   echo "     然后重开终端再跑本脚本。"
   exit 1
 fi
-pipx install agent-reach 2>/dev/null || pipx upgrade agent-reach || true
+# agent-reach 不在 PyPI，官方安装源是 GitHub main.zip
+AR_SRC="https://github.com/Panniantong/agent-reach/archive/main.zip"
+pipx install "$AR_SRC" 2>/dev/null || pipx install --force "$AR_SRC"
 
 echo "▶ 2/5 安装渠道工具（OpenCLI / bili-cli 等）"
 agent-reach install || echo "  ⚠️ agent-reach install 有非致命报错，继续。"
@@ -29,8 +31,11 @@ elif [ -x "$HOME/.agent-reach/bin/BBDown" ]; then
   echo "  ℹ️ BBDown 已存在，跳过。"
 else
   mkdir -p "$HOME/.agent-reach/bin"
+  # 整步可选、失败不中断（|| true 防止 set -e 在限流/无匹配时掐断脚本）
   BB_URL="$(curl -fsSL "https://api.github.com/repos/nilaoda/BBDown/releases/latest" 2>/dev/null \
-            | grep -oE "https://[^\"]*BBDown[^\"]*${BB_PAT}\.zip" | head -1)"
+            | grep -oE "https://[^\"]*BBDown[^\"]*${BB_PAT}\.zip" | head -1 || true)"
+  # API 取不到（限流/无网）→ 兜底用钉死的稳定版直链
+  [ -z "$BB_URL" ] && BB_URL="https://github.com/nilaoda/BBDown/releases/download/1.6.3/BBDown_1.6.3_20240814_${BB_PAT}.zip"
   if [ -n "$BB_URL" ] && curl -fsSL "$BB_URL" -o /tmp/bbdown.zip 2>/dev/null; then
     unzip -o -q /tmp/bbdown.zip -d "$HOME/.agent-reach/bin" && chmod +x "$HOME/.agent-reach/bin/BBDown" 2>/dev/null
     rm -f /tmp/bbdown.zip
