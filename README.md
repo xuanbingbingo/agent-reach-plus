@@ -20,7 +20,9 @@ cd agent-reach-plus
 bash install.sh
 ```
 
-`install.sh` 会自动:装/更新 agent-reach（pipx）→ 装渠道工具（OpenCLI 等）→ 注入抖音渠道补丁 → 部署 skill 到 `~/.claude/skills/agent-reach/`。
+`install.sh` 会自动:**检查并补齐前置依赖（python3 / pipx / node / ffmpeg）** → 装/更新 agent-reach（pipx）→ 装渠道工具（OpenCLI 等）→ 注入抖音渠道补丁 → 部署 skill 到 `~/.claude/skills/agent-reach/`。
+
+> **依赖自动补齐**：mac 上若装了 [Homebrew](https://brew.sh)，脚本会用 `brew` 自动装齐缺失的 python3/pipx/node/ffmpeg；没装 brew 也会先尝试用 `pip --user` 装 pipx，其余缺啥按平台给出 `brew install` / `apt install` 指引。必需项（python3 / pipx）没装上会停下提示，可选项（node / ffmpeg）缺失只告警不中断（影响对应渠道）。Linux 同理，自动安装目前只对 mac+brew 生效，其余给指引。
 
 ### 装完还需手动 3 步（脚本替不了）
 
