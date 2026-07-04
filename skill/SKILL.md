@@ -10,7 +10,7 @@ description: >
   LinkedIn/领英/招聘/求职/jobs, YouTube, GitHub code search, 小宇宙播客,
   雪球/股票行情, RSS feeds, or any web URL.
 
-  13 platforms, multi-backend routing (OpenCLI / per-platform CLIs / APIs).
+  15 platforms, multi-backend routing (OpenCLI / per-platform CLIs / APIs).
   Zero config for 6 channels. Run `agent-reach doctor --json` to see which
   backend serves each platform right now.
 
@@ -18,13 +18,14 @@ description: >
   发帖/评论/点赞等写操作；已有专门 skill 的平台（先用专门 skill）。
 
   【路由方式】SKILL.md 包含路由表和常用命令，复杂场景需按需阅读对应分类的 references/*.md。
-  分类：search / social (小红书/推特/B站/V2EX/Reddit) / career(LinkedIn) / dev(github) / web(网页/文章/RSS) / video(YouTube/B站/播客)。
+  分类：search / social (小红书/抖音/快手/推特/B站/V2EX/Reddit) / career(LinkedIn) / dev(github) / web(网页/文章/RSS) / video(YouTube/B站/播客)。
 triggers:
   - research: 调研/全网调研/帮我调研/研究一下/research/深入了解
   - search: 搜/查/找/search/搜索/查一下/帮我搜/看看大家怎么说
   - social:
     - 小红书: xiaohongshu/xhs/小红书/红书
     - 抖音: douyin/抖音/dy
+    - 快手: kuaishou/快手/ks
     - Twitter: twitter/推特/x.com/推文
     - B站: bilibili/b站/哔哩哔哩
     - V2EX: v2ex
@@ -42,7 +43,7 @@ metadata:
 
 # Agent Reach — 互联网能力路由器
 
-13 平台、多后端。**本 skill 存在时必须用它访问这些平台，不要自己发明方案。**
+15 平台、多后端。**本 skill 存在时必须用它访问这些平台，不要自己发明方案。**
 
 ## 常驻规则（全程适用）
 
@@ -62,12 +63,12 @@ metadata:
 | 用户意图 | 分类 | 详细文档 |
 |---------|------|---------|
 | 网页搜索/代码搜索 | search | [references/search.md](references/search.md) |
-| 小红书/抖音/推特/B站/V2EX/Reddit | social | [references/social.md](references/social.md) |
+| 小红书/抖音/快手/推特/B站/V2EX/Reddit | social | [references/social.md](references/social.md) |
 | 招聘/职位/LinkedIn | career | [references/career.md](references/career.md) |
 | GitHub/代码 | dev | [references/dev.md](references/dev.md) |
 | 网页/文章/RSS | web | [references/web.md](references/web.md) |
 | YouTube/B站/播客字幕 | video | [references/video.md](references/video.md) |
-| 下载视频/图文到本地（YouTube/B站/小红书/抖音） | download | [references/download.md](references/download.md) |
+| 下载视频/图文到本地（YouTube/B站/小红书/抖音/快手） | download | [references/download.md](references/download.md) |
 
 ## 零配置快速命令
 
@@ -103,6 +104,12 @@ rdt search "query" --limit 10            # 存量/服务器
 
 # 小红书（桌面首选 OpenCLI）
 opencli xiaohongshu search "query" -f yaml
+
+# 抖音（OpenCLI 原生 adapter）
+opencli douyin search "query" -f json
+
+# 快手（无原生 adapter，走 opencli browser + 网页版 GraphQL，见 social.md 快手节）
+opencli browser ks open "https://www.kuaishou.com"
 ```
 
 ## 环境检查

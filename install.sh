@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # agent-reach-plus 一键安装
-# = 官方 agent-reach + 抖音渠道 + skill 文档
+# = 官方 agent-reach + 抖音、快手渠道 + skill 文档
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -125,7 +125,7 @@ else
   fi
 fi
 
-echo "▶ 5/6 注入抖音渠道补丁"
+echo "▶ 5/6 注入抖音、快手渠道补丁"
 VENV_BASE="$(pipx environment --value PIPX_LOCAL_VENVS 2>/dev/null || true)"
 VENV_PY="${VENV_BASE:-$HOME/.local/pipx/venvs}/agent-reach/bin/python"
 if [ ! -x "$VENV_PY" ]; then
@@ -147,17 +147,17 @@ cat <<'EOF'
      https://chromewebstore.google.com/detail/opencli/ildkmabpimmkaediidaifkhjpohdnifk
      装完保持 Chrome 开着，跑 `opencli doctor` 应显示 Extension: connected
 
-  2) 在同一个 Chrome 里登录你要用的平台（抖音 / 小红书 / Twitter；Reddit 免登录）
+  2) 在同一个 Chrome 里登录你要用的平台（抖音 / 快手 / 小红书 / Twitter；Reddit 免登录）
      一次性提取 cookie：agent-reach configure --from-browser chrome
 
   3) （可选）小宇宙播客 / 本地录音转文字需要免费 Groq key：
      注册 https://console.groq.com → agent-reach configure groq-key gsk_xxx
 
 验证全部渠道：agent-reach doctor --json
-（抖音应显示 status: ok / active_backend: OpenCLI）
+（抖音、快手应显示 status: ok）
 
 装好后，在你的 agent 窗口直接说一句即可下载视频，例如：
-  「帮我下载这个链接的视频 <粘贴 YouTube/B站/小红书/抖音 链接>」
+  「帮我下载这个链接的视频 <粘贴 YouTube/B站/小红书/抖音/快手 链接>」
   → 自动认平台、选工具、下到本地。
   （B站合流需系统装 ffmpeg：brew install ffmpeg / apt install ffmpeg）
 EOF

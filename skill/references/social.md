@@ -83,6 +83,58 @@ opencli douyin stats AWEME_ID -f yaml
 >
 > ⬇️ **下载单条视频别走 sec_uid**：主路径是分享页直抠 play_url（过滤 `__vid`），详见 [`download.md`](download.md)。sec_uid→user-videos 只是抠不到时的兜底。
 
+## 快手 / Kuaishou（OpenCLI browser + 网页版 GraphQL，需桌面 Chrome + 登录）
+
+快手没有 OpenCLI 原生 adapter（没有 `opencli kuaishou ...` 子命令），走通用浏览器桥：
+开一个 kuaishou.com 标签页，在**页面上下文**里 `fetch` 快手网页版自己的 GraphQL 接口
+（`https://www.kuaishou.com/graphql`），cookie 由浏览器自动带上。
+
+三条硬规则（实测 2026-07）：
+1. 🔴 **GraphQL 必须提交完整 fragment 查询体**（下面模板原样用），精简查询直接返回空。
+2. cookie 全 HttpOnly，`document.cookie` 判不了登录态——以返回 `result == 1` 且 `feeds` 非空为准；不通就让用户在 Chrome 登一次 kuaishou.com。
+3. fetch 是异步的：结果写到 `window.__ks`，`sleep 3` 后再 eval 一次取回。
+
+```bash
+# 第0步 开会话页（一次即可，后续 eval 都在这个 tab 的上下文里跑）
+opencli browser ks open "https://www.kuaishou.com"
+
+# 第1步 写查询脚本到 /tmp（查询体长，内联转义容易出错，统一走文件）
+cat > /tmp/ks_query.js <<'EOF'
+fetch("https://www.kuaishou.com/graphql", {
+  method: "POST", headers: {"Content-Type": "application/json"}, credentials: "include",
+  body: JSON.stringify({
+    operationName: "visionSearchPhoto",
+    variables: {keyword: "关键词", pcursor: "", page: "search"},
+    query: "fragment photoContent on PhotoEntity {\n  id\n  duration\n  caption\n  likeCount\n  viewCount\n  coverUrl\n  photoUrl\n  timestamp\n  __typename\n}\n\nfragment feedContent on Feed {\n  type\n  author {\n    id\n    name\n    headerUrl\n    __typename\n  }\n  photo {\n    ...photoContent\n    __typename\n  }\n  __typename\n}\n\nquery visionSearchPhoto($keyword: String, $pcursor: String, $searchSessionId: String, $page: String, $webPageArea: String) {\n  visionSearchPhoto(keyword: $keyword, pcursor: $pcursor, searchSessionId: $searchSessionId, page: $page, webPageArea: $webPageArea) {\n    result\n    feeds {\n      ...feedContent\n      __typename\n    }\n    searchSessionId\n    pcursor\n    __typename\n  }\n}\n"
+  })
+}).then(r => r.json()).then(d => { window.__ks = JSON.stringify(d?.data?.visionSearchPhoto ?? d); })
+  .catch(e => { window.__ks = "ERR " + e.message; });
+"queued"
+EOF
+
+# 第2步 执行 + 取回（feeds[i].photo = {id/caption/duration/likeCount/photoUrl直链}，pcursor 翻页）
+opencli browser ks eval "$(cat /tmp/ks_query.js)"
+sleep 3
+opencli browser ks eval 'window.__ks'
+```
+
+**另外两个接口**——同一套跑法，只换 `operationName` / `variables` / `query`：
+
+- **单视频详情**（photoId 从 URL `kuaishou.com/short-video/<photoId>` 取）：
+  `operationName: "visionVideoDetail"`，`variables: {photoId: "<photoId>", page: "search"}`，
+  query 原文：`"query visionVideoDetail($photoId: String, $type: String, $page: String, $webPageArea: String) {\n  visionVideoDetail(photoId: $photoId, type: $type, page: $page, webPageArea: $webPageArea) {\n    status\n    author {\n      id\n      name\n      headerUrl\n      __typename\n    }\n    photo {\n      id\n      duration\n      caption\n      likeCount\n      realLikeCount\n      coverUrl\n      photoUrl\n      timestamp\n      __typename\n    }\n    __typename\n  }\n}\n"`
+  结果取 `d.data.visionVideoDetail`。
+- **某用户作品列表**（userId 从搜索结果 `feeds[i].author.id` 或主页 URL `kuaishou.com/profile/<userId>` 取）：
+  `operationName: "visionProfilePhotoList"`，`variables: {userId: "<userId>", pcursor: "", page: "profile"}`，
+  query 用上面搜索模板的两个 fragment + `"query visionProfilePhotoList($pcursor: String, $userId: String, $page: String, $webPageArea: String) {\n  visionProfilePhotoList(pcursor: $pcursor, userId: $userId, page: $page, webPageArea: $webPageArea) {\n    result\n    feeds {\n      ...feedContent\n      __typename\n    }\n    pcursor\n    __typename\n  }\n}\n"`
+  结果取 `d.data.visionProfilePhotoList`（带 `pcursor` 翻页）。
+
+> **短链**：`v.kuaishou.com/xxxx` 分享短链先 `curl -sIL <短链> | grep -i "^location"` 解析出落地页，再从落地 URL 里抠 `photoId`。
+>
+> ⬇️ **下载**：`photoUrl` 是 CDN 直链，裸 curl 可下（带 UA+Referer 即可，无需 cookie，比抖音宽松），详见 [`download.md`](download.md)。
+>
+> **频率控制**：和小红书同理，批量翻页间隔 2-3 秒，别高频轰接口。
+
 ## Twitter/X (twitter-cli)
 
 ### 稳定命令

@@ -64,11 +64,33 @@ curl -L "<play_url>" -H "Referer: https://www.douyin.com/" -o out.mp4
 
 > yt-dlp 抖音解析器已过期，别用。
 
+## 快手（GraphQL 拿 photoUrl 直链 → 裸 curl，比抖音宽松）
+
+> 实测 2026-07：`photoUrl` 是 kwaicdn CDN 直链，**裸 curl 就能下**（带 UA+Referer 即可，无需 cookie）。拿 photoUrl 那一步需要 Chrome 开着+登录快手（GraphQL 跑法详见 [`social.md`](social.md) 快手节）。
+
+```bash
+# 第1步 拿 photoId：链接是 kuaishou.com/short-video/<photoId> 直接抠；
+#        v.kuaishou.com 短链先解析重定向
+curl -sIL "https://v.kuaishou.com/XXXX" | grep -i "^location"
+
+# 第2步 GraphQL visionVideoDetail 拿 photoUrl（完整查询体在 social.md 快手节，🔴必须完整 fragment）
+opencli browser ks open "https://www.kuaishou.com"
+#   ... eval fetch visionVideoDetail(photoId) → photo.photoUrl
+
+# 第3步 直链下载（URL 含 & 等符号，务必整体加引号）
+curl -L -H "Referer: https://www.kuaishou.com/" -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" "<photoUrl>" -o ~/Desktop/标题.mp4
+```
+
+> ⚠️ curl 若报 exit 7 / 连不上，先检查 shell 里有没有残留 HTTP(S)_PROXY 代理变量（`env -u HTTP_PROXY -u HTTPS_PROXY curl ...` 绕开）。
+> ⚠️ photoUrl 带时效签名，过期就回第2步重取一次。
+> ⚠️ yt-dlp 没有可用的快手解析器，别试。
+
 ## 整个作者批量下载
 
 - **抖音**：`opencli douyin user-videos "<真sec_uid>" --limit 20 -f json` 一次返回该作者作品（每条带 play_url），循环 curl，统一放一个文件夹（文件名用序号+标题）。
+- **快手**：GraphQL `visionProfilePhotoList(userId)` 翻页收集每条的 `photoUrl`（查询体见 [`social.md`](social.md)），循环 curl，间隔 2-3 秒。
 - **小红书**：逐条 note URL 调 `download`。
 
 ## 合规（务必遵守）
 
-仅限**个人自用**。🔴 禁止批量搬运、去水印二次发布、商用；作者设「禁止下载」的内容，技术能取 ≠ 可以使用。OpenCLI 类（小红书/抖音）用你本人真实登录态，Chrome 要开着。
+仅限**个人自用**。🔴 禁止批量搬运、去水印二次发布、商用；作者设「禁止下载」的内容，技术能取 ≠ 可以使用。OpenCLI 类（小红书/抖音/快手）用你本人真实登录态，Chrome 要开着。

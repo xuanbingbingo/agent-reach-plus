@@ -1,5 +1,5 @@
 ﻿# agent-reach-plus · Windows 原生安装器 (PowerShell)
-# = 官方 agent-reach + 抖音渠道 + skill，全部跑在原生 Windows（不用 WSL）
+# = 官方 agent-reach + 抖音、快手渠道 + skill，全部跑在原生 Windows（不用 WSL）
 # 用法：在 PowerShell 里  cd 到本仓库目录，执行：  powershell -ExecutionPolicy Bypass -File .\install.ps1
 # Continue（不要 Stop）：pipx/agent-reach 会把正常进度写到 stderr，
 # Stop 下会被当成终止错误中断安装。真失败靠下面的 Have/Test-Path 显式判断。
@@ -70,14 +70,14 @@ Refresh-Path
 Write-Host "▶ 3/5 安装渠道工具 (OpenCLI 等)" -ForegroundColor Yellow
 if (Have agent-reach) { agent-reach install } else { Write-Warning "agent-reach 不在 PATH，可能需重开 PowerShell；跳过 install" }
 
-# 4) 注入抖音渠道补丁（用 agent-reach 的 venv python）
-Write-Host "▶ 4/5 注入抖音渠道" -ForegroundColor Yellow
+# 4) 注入抖音、快手渠道补丁（用 agent-reach 的 venv python）
+Write-Host "▶ 4/5 注入抖音、快手渠道" -ForegroundColor Yellow
 $venvBase = (& $PY -m pipx environment --value PIPX_LOCAL_VENVS) 2>$null
 $venvPy = Join-Path $venvBase 'agent-reach\Scripts\python.exe'
 if (Test-Path $venvPy) {
   & $venvPy (Join-Path $HERE 'patches\apply.py')
 } else {
-  Write-Warning "找不到 agent-reach 的 venv python：$venvPy（跳过抖音注入，可稍后手动跑 patches\apply.py）"
+  Write-Warning "找不到 agent-reach 的 venv python：$venvPy（跳过抖音/快手注入，可稍后手动跑 patches\apply.py）"
 }
 
 # 5) 下载 BBDown（B站）+ 部署 skill
@@ -109,7 +109,7 @@ Copy-Item (Join-Path $HERE 'skill\references\*.md') (Join-Path $dest 'references
 Write-Host ""
 Write-Host "完成。还有 3 件必须手动做：" -ForegroundColor Green
 Write-Host "  1) 装 OpenCLI 的 Chrome 扩展（点一次）：https://chromewebstore.google.com/detail/opencli/ildkmabpimmkaediidaifkhjpohdnifk"
-Write-Host "  2) 在 Chrome 登录要用的平台（抖音/小红书/Twitter；Reddit 免登录），再 agent-reach configure --from-browser chrome"
+Write-Host "  2) 在 Chrome 登录要用的平台（抖音/快手/小红书/Twitter；Reddit 免登录），再 agent-reach configure --from-browser chrome"
 Write-Host "  3) （可选）转写要免费 Groq key：https://console.groq.com  ->  agent-reach configure groq-key gsk_xxx"
-Write-Host "验证：agent-reach doctor --json（抖音应 status: ok）"
+Write-Host "验证：agent-reach doctor --json（抖音、快手应 status: ok）"
 Write-Host "提示：若 agent-reach / python 命令找不到，重开一个 PowerShell 窗口再试（PATH 需刷新）。"
