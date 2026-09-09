@@ -40,7 +40,23 @@ yt-dlp --no-playlist \
 "$HOME/.agent-reach/bin/BBDown" "BV号或URL" --work-dir DIR
 ```
 - `install.sh` 已把 BBDown 便携版装到 `~/.agent-reach/bin/`；合流需要系统装了 **ffmpeg**。
-- 游客只能下 480P；**1080P+ 需登录态**：先 `agent-reach configure --from-browser chrome`（提取 B站 SESSDATA）。
+  🔴 **这一步是「失败不中断」的**（`|| true` + 吞掉 stderr）：GitHub 拉不到时只打印一行警告、
+  退出码仍是成功，于是 `~/.agent-reach/bin/` 可能压根不存在而你毫不知情，
+  直到某天下 B站视频才报「文件不存在」。**装完自查一句**：`ls -l ~/.agent-reach/bin/BBDown`。
+  补装就是重跑 install.sh（已存在会自动跳过），或从 https://github.com/nilaoda/BBDown/releases 手动拿。
+- 游客只能下 **480P**；1080P+ 需要 B站登录态。
+  🔴 **BBDown 有自己独立的登录，不读 agent-reach 的 `config.yaml`** ——
+  `agent-reach configure --from-browser chrome` 填的是 agent-reach 自己那份 `bilibili_sessdata`，
+  **对 BBDown 完全无效**。给 BBDown 登录态是这两条之一：
+  ```bash
+  ~/.agent-reach/bin/BBDown login                      # 扫码，凭证存成 BBDown.data
+  ~/.agent-reach/bin/BBDown "BV号" -c "SESSDATA=xxx"   # 或每次显式传 cookie
+  ```
+  判据：BBDown 开头会打印「检测账号登录...」，出现 **「你尚未登录B站账号, 解析可能受到限制」**
+  就是没登录态，后面必然只给 480P。
+  🔴 **SESSDATA 会过期且过期后毫无提示**：验一下
+  `curl -s -H "Cookie: SESSDATA=xxx" https://api.bilibili.com/x/web-interface/nav`，
+  返回 `code=-101 账号未登录` 就是死了，重新登录抓取。
 - 若 `~/.agent-reach/bin/BBDown` 不存在：按平台从 https://github.com/nilaoda/BBDown/releases 拉对应便携包临时用。
 
 ## 小红书（OpenCLI，要 Chrome 登录小红书）
