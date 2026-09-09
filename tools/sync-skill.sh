@@ -35,9 +35,13 @@ SSH=(ssh -p "$PORT" "$TARGET")
 SCP=(scp -P "$PORT" -q)
 
 echo "▶ 1/4 目标机备份现有 skill"
+# 🔴 备份必须落在 ~/.claude/skills 之外：Claude Code 会把 skills/ 下的每个子目录
+#    都当成一个 skill 加载，备份放进去会凭空多出一个同名冒牌 skill 污染列表。
 "${SSH[@]}" 'zsh -lc '"'"'
   D=~/.claude/skills/agent-reach
-  [ -d "$D" ] && cp -a "$D" "$D.bak-$(date +%Y%m%d_%H%M%S)" && echo "  已备份 $D.bak-*" || echo "  目标机原本没装，将新建"
+  B=~/.claude/skills-backups
+  mkdir -p "$B"
+  [ -d "$D" ] && cp -a "$D" "$B/agent-reach.bak-$(date +%Y%m%d_%H%M%S)" && echo "  已备份 → $B/" || echo "  目标机原本没装，将新建"
   mkdir -p "$D/references"
 '"'"''
 
