@@ -126,3 +126,20 @@ agent-reach-plus/
     ├── kuaishou.py     快手渠道源码
     └── apply.py        幂等注入器（跨平台，douyin + kuaishou 一起管）
 ```
+
+## 同步到自己的其它机器
+
+改完 `skill/` 之后，把文档推到另一台自己的机器并部署生效（适合目标机连不上 GitHub、没法 `git pull` 的情况）：
+
+```bash
+tools/sync-skill.sh user@host                 # 默认 22 端口
+tools/sync-skill.sh user@host -p 20023        # 走隧道/非标端口
+tools/sync-skill.sh user@host -p 20023 --repo ~/aiProjects/agent-reach-plus   # 顺带更新目标机的仓库副本
+```
+
+脚本会先备份目标机现有 skill、传 8 个文档、再逐个 md5 复核，不一致就报错退出。
+
+🔴 **只同步「能力」，不同步「数据」**：目标机的 `~/.agent-reach/config.yaml`
+（cookie / api key / 登录态）脚本一个字节都不碰——那是各人自己的凭据，必须在目标机本人登录后
+用 `agent-reach configure --from-browser chrome` 自己抓。
+

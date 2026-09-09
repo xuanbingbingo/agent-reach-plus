@@ -7,9 +7,32 @@
 ## YouTube（yt-dlp，免登录，画质不锁）
 
 ```bash
-yt-dlp -f "bv*[height<=1080][ext=mp4]+ba/b" --merge-output-format mp4 -o "out.%(ext)s" "URL"
-# 要最高画质：去掉 [height<=1080] 限制
+yt-dlp --no-playlist \
+  -f "bv*[vcodec^=avc1]+ba[acodec^=mp4a]/b[vcodec^=avc1]" \
+  --merge-output-format mp4 -o "%(title).80s.%(ext)s" "URL"
 ```
+
+> 🔴 **按编码筛（`vcodec^=avc1`），不要按后缀筛（`ext=mp4`）。**
+> `.mp4` 只是容器：YouTube 同一条视频并行提供 H.264(avc1) / VP9 / AV1 三套视频轨，
+> **VP9 和 AV1 的轨也封在 mp4 容器里**，所以 `ext=mp4` 筛不干净——实测会选中
+> `616(vp9)+251(opus)` 或 `398(av1)+251(opus)` 这类组合，下出来的 `.mp4`
+> 在 macOS QuickTime / 预览、Windows 照片、剪映里**双击打不开或黑屏没声**（它们只解 H.264/HEVC + AAC）。
+> 判据：下完跑一句 `ffprobe -v error -show_entries stream=codec_name -of csv=p=0 out.mp4`，
+> **必须是 `h264` + `aac`**；看到 vp9 / av1 / opus 就是选错轨，**重下，别转码**。
+
+- 体积变大是正常的：AV1/VP9 压缩率高于 H.264，同画质文件更小；换成 H.264 体积必涨，
+  但**画质无损**（都是从源直接取轨，全程没有转码）。
+- 限高画质写 `bv*[vcodec^=avc1][height<=1080]`；要最高画质就别加 height 条件。
+- 拿不准有哪些轨，先列一遍 `yt-dlp -F "URL"` 找 `avc1` 行
+  （1080p 常见是 `137`，720p 是 `136`，AAC 音轨是 `140`）。
+- 部分视频只有低分辨率的 avc1 轨（Shorts 常见 720p 封顶），这不是漏下，是源上就没有。
+- 🔴 **大陆网络需自备 HTTP 代理**：youtube.com / googlevideo.com 直连不可达，
+  且命令行工具不读系统代理开关，必须显式 `--proxy http://HOST:PORT`
+  （端口填你自己代理客户端的，本文不写死）。嫌每次都要加，就写进 `~/.config/yt-dlp/config`：
+  ```
+  --proxy http://127.0.0.1:7890
+  ```
+- 过程中报 `SSL: UNEXPECTED_EOF_WHILE_READING` 一般是代理节点抖动，yt-dlp 会自行重试，不影响成片完整性。
 
 ## B站（BBDown；⚠️禁用 yt-dlp——B站 412 拦截）
 
