@@ -49,9 +49,20 @@ yt-dlp --no-playlist \
   `agent-reach configure --from-browser chrome` 填的是 agent-reach 自己那份 `bilibili_sessdata`，
   **对 BBDown 完全无效**。给 BBDown 登录态是这两条之一：
   ```bash
-  ~/.agent-reach/bin/BBDown login                      # 扫码，凭证存成 BBDown.data
-  ~/.agent-reach/bin/BBDown "BV号" -c "SESSDATA=xxx"   # 或每次显式传 cookie
+  ~/.agent-reach/bin/BBDown login                      # ① 扫码，凭证存成 BBDown.data
+  ~/.agent-reach/bin/BBDown "BV号" -c "SESSDATA=xxx"   # ② 每次显式传 cookie
   ```
+  ⭐ **③ 免扫码、且一次配置长期生效**（推荐，实测可用）：`BBDown.data` 就是一行 cookie 文本，
+  直接从 agent-reach 已抓好的那份拼出来即可，不必再扫一次码：
+  ```bash
+  CFG=~/.agent-reach/config.yaml; BIN=~/.agent-reach/bin
+  SESS=$(awk '/^bilibili_sessdata:/{print $2}' $CFG)
+  JCT=$(awk '/^bilibili_csrf:/{print $2}' $CFG)
+  printf 'SESSDATA=%s;bili_jct=%s' "$SESS" "$JCT" > $BIN/BBDown.data && chmod 600 $BIN/BBDown.data
+  ```
+  前提是 agent-reach 那份 cookie 是新鲜的（先在 Chrome 登好 B站，再
+  `agent-reach configure --from-browser chrome`）。实测：写完 BBDown.data 后
+  「尚未登录」警告消失，可选流里出现 `[1080P 高清] [1920x1080]`。
   判据：BBDown 开头会打印「检测账号登录...」，出现 **「你尚未登录B站账号, 解析可能受到限制」**
   就是没登录态，后面必然只给 480P。
   🔴 **SESSDATA 会过期且过期后毫无提示**：验一下
