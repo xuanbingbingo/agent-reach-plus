@@ -68,7 +68,7 @@ metadata:
 | GitHub/代码 | dev | [references/dev.md](references/dev.md) |
 | 网页/文章/RSS | web | [references/web.md](references/web.md) |
 | YouTube/B站/播客字幕 | video | [references/video.md](references/video.md) |
-| 下载视频/图文到本地（YouTube/B站/小红书/抖音/快手） | download | [references/download.md](references/download.md) |
+| 下载视频/图文到本地（YouTube/Twitter-X/B站/小红书/抖音/快手） | download | [references/download.md](references/download.md) |
 
 ## 零配置快速命令
 

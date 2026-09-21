@@ -34,6 +34,58 @@ yt-dlp --no-playlist \
   ```
 - 过程中报 `SSL: UNEXPECTED_EOF_WHILE_READING` 一般是代理节点抖动，yt-dlp 会自行重试，不影响成片完整性。
 
+## Twitter / X（yt-dlp 主路径；opencli download 能用但不首选）
+
+```bash
+yt-dlp --no-playlist -f "bv*[vcodec^=avc1]+ba/b" \
+  --merge-output-format mp4 -o "x-%(uploader_id)s-%(id)s.%(ext)s" \
+  "https://x.com/<user>/status/<tweet_id>"
+```
+- 链接尾部的 `/video/1`、`/photo/1` 可留可去，yt-dlp 都能解析；`twitter.com` 与 `x.com` 等价。
+- 公开推文免登录即可下（走 guest token）；受保护账号 / 敏感内容才需要 `--cookies-from-browser chrome`。
+
+### 🔴 环境代理陷阱（本节最容易卡死的一条）
+
+命令行工具**优先读 shell 里的 `HTTP_PROXY/HTTPS_PROXY`，而不是系统代理设置**。
+如果这两个变量指向的是「只放行特定域名」的受限网关（常见于给某个 API 做转发的本地网关），
+连 x.com 会直接报 `CONNECT tunnel failed, response 502`，**报错里完全看不出是代理挑食**，
+很容易误判成 yt-dlp 抽风或账号问题。正解是先摘掉环境变量、再显式指定能出网的代理：
+
+```bash
+env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy \
+  yt-dlp --proxy http://HOST:PORT ...
+```
+- 动手前先验这条线活没活：
+  `curl -x http://HOST:PORT https://x.com/ -o /dev/null -w '%{http_code}\n'` —— **200 才算通**。
+- 🔴 `lsof -nP -iTCP -sTCP:LISTEN` **不带 sudo 看不到 root 用户起的监听端口**，
+  别拿「端口没列出来」当作「代理没开」的判据，以上面那条 curl 为准。
+- 大陆网络前提：x.com / video.twimg.com **直连不可达**（curl 直接超时），必须有可出网的代理；
+  海外网络可跳过本节这一条。端口填你自己代理客户端的，本文不写死。
+
+### 🔴 文件名里的 ID 可能 ≠ 你给的 status id
+
+引用推 / 转推时，视频实体挂在**被引用的那条**上，yt-dlp 会自动跟过去、并用那条的 id 命名输出。
+这不是下错了，核对画面即可。
+
+### 画质与验收
+
+X 的可选流普遍偏低（实测常见顶格 480×1010 这一档），拿不准先 `yt-dlp -F "URL"` 看一眼有哪些轨，
+别把「只有 480」当成自己选轨选低了。验收同 YouTube 节：
+`ffprobe -v error -show_entries stream=codec_name -of csv=p=0 out.mp4` 必须是 `h264` + `aac`。
+
+### `opencli twitter download --tweet-url` 能用，但不首选（实测 v1.8.4）
+
+```bash
+opencli twitter download --tweet-url "<推文URL>" --output DIR -f yaml
+```
+它内部同样调 yt-dlp，所以**上面那条环境代理陷阱一模一样要吃**（代理不对时四个候选全 failed）。
+代理正确时能下成功，但有三个毛病：
+- 一条推会展开出多个候选，其中 `blob:` 开头的**必然** `fetch failed`；
+- 会顺手把**同页别人的**视频也下下来（实测 4 个候选里 1 个是邻条推的）；
+- 落盘名是 `tweet_N.mp4`，不带作者和推文 id，事后认不出来是哪条。
+
+结论：**读推文内容走 opencli**（`twitter thread / article / search`），**下媒体走 yt-dlp**。
+
 ## B站（BBDown；⚠️禁用 yt-dlp——B站 412 拦截）
 
 ```bash
