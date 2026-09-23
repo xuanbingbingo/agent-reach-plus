@@ -37,12 +37,28 @@ yt-dlp --no-playlist \
 ## Twitter / X（yt-dlp 主路径；opencli download 能用但不首选）
 
 ```bash
-yt-dlp --no-playlist -f "bv*[vcodec^=avc1]+ba/b" \
+yt-dlp --cookies-from-browser chrome --no-playlist -f "bv*[vcodec^=avc1]+ba/b" \
   --merge-output-format mp4 -o "x-%(uploader_id)s-%(id)s.%(ext)s" \
   "https://x.com/<user>/status/<tweet_id>"
 ```
 - 链接尾部的 `/video/1`、`/photo/1` 可留可去，yt-dlp 都能解析；`twitter.com` 与 `x.com` 等价。
-- 公开推文免登录即可下（走 guest token）；受保护账号 / 敏感内容才需要 `--cookies-from-browser chrome`。
+
+### 🔴 `--cookies-from-browser chrome` 默认就要带（2026-09-23 实测修正）
+
+旧版本这里写的是「公开推文免登录即可下，受保护 / 敏感内容才需要 cookies」——**已证伪，别再照着做**。
+实测一条完全公开的推文（`x.com/dhamsil/status/2102194877702549642`），代理已通（curl 200）、
+guest token 也正常拿到，GraphQL 照样只回一句：
+
+```
+ERROR: [twitter] <id>: No video could be found in this tweet
+```
+
+**这句报错极具误导性**：它长得像「这条推压根没视频」，实际是「没登录态所以看不见视频」。
+带上 `--cookies-from-browser chrome` 后同一条推立刻出 m3u8、正常合流。
+所以：**默认就加这个参数**，不要等报错了再回来加；看到 `No video could be found` 的第一反应
+是补 cookies，而不是去怀疑代理、怀疑链接、或者跑去读推文确认有没有视频。
+
+前提是 Chrome 里登着 X。macOS 上 yt-dlp 读 Chrome cookie 需要钥匙串授权，首次可能弹窗。
 
 ### 🔴 环境代理陷阱（本节最容易卡死的一条）
 
