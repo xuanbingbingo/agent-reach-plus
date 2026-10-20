@@ -169,6 +169,28 @@ curl -L -H "Referer: https://www.douyin.com/" -H "User-Agent: Mozilla/5.0 (Macin
 > ⚠️ **不要裸 curl iesdouyin 分享页**：抖音风控经常把裸 curl 返回成 0 字节（时好时坏），统一走 `opencli browser open` + eval。
 > ⚠️ 别用 `douyin.com/video/<id>` 页——推荐位污染更重；必须用 **iesdouyin 分享页**。
 
+**⭐兜底 0（2026-10-20 实测最快：第3步抠不到、video.src 是 blob: 时先用它）：页内调详情接口**
+分享页会被重定向到 douyin.com，HTML 里已没有 douyinvod，video 元素只给 blob:。在同一个已登录标签页里直接 fetch 详情接口即可拿到 play_addr（不需要 a_bogus 签名）：
+```bash
+opencli browser dy eval "(async()=>{var r=await fetch('/aweme/v1/web/aweme/detail/?device_platform=webapp&aid=6383&aweme_id=<aweme_id>',{credentials:'include'});var j=await r.json();var v=j.aweme_detail.video;return JSON.stringify({d:v.duration,u:v.play_addr.url_list[0]});})()"
+curl -L -H "Referer: https://www.douyin.com/" "<u>" -o out.mp4
+```
+
+**🐳 LuckyClaw 容器（没有 opencli，用 agent-browser + 已保存的登录态；2026-10-20 容器内实测 64s h264+aac 成功）**
+```bash
+# 第1步 拿 aweme_id（同上，读重定向头）
+curl -sIL "https://v.douyin.com/XXXX/" | grep -i "^location"   # 抠 /video/(数字) 或 /share/video/(数字)
+# 第2步 已登录的 agent-browser 打开作品页，等 ~6s 渲染
+agent-browser open "https://www.douyin.com/video/<aweme_id>"
+# 第3步 页内调详情接口（同源+登录 Cookie，不需要 a_bogus）拿无水印带音轨的 play_addr
+agent-browser eval "(async()=>{var r=await fetch('/aweme/v1/web/aweme/detail/?device_platform=webapp&aid=6383&aweme_id=<aweme_id>',{credentials:'include'});var j=await r.json();var v=j.aweme_detail.video;return JSON.stringify({desc:j.aweme_detail.desc,d:v.duration,u:v.play_addr.url_list[0]});})()"
+# 第4步 带 Referer 下载，ffprobe 验收（应同时有 h264 + aac）
+curl -L -H "Referer: https://www.douyin.com/" -A "Mozilla/5.0" "<u>" -o out.mp4 && ffprobe -v error -show_entries stream=codec_name -of csv=p=0 out.mp4
+```
+> ⚠️ 返回 HTML 而不是 JSON = 没登录或登录过期 → 请用户到「设置 → 浏览器登录」重新扫码。
+> ⚠️ 不要用 `performance` 里抓到的 `media-video-avc1` 链接——那是 DASH 分轨，只有画面没有声音。
+> ⚠️ 容器里下载结果在容器工作区，按渠道约定把文件发回给用户，不存在「下到桌面」。
+
 **兜底 A（主路径第3步抠不到 douyinvod、页面没渲出 video 时才用）：sec_uid → user-videos**
 ```bash
 # 先抠候选 sec_uid（去重取前几个），逐个试 user-videos 找目标 aweme_id 命中

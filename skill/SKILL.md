@@ -57,6 +57,14 @@ metadata:
    「Agent Reach 有新版 vX.Y.Z，复制这句话给我即可更新：帮我更新 Agent Reach：
    https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/update.md」。
    不要中断当前任务去更新，也不要重复提醒同一个版本。
+6. **在 LuckyClaw 容器里时换一套后端**（判定：`command -v opencli` 为空，且 `command -v agent-browser` 有值）：
+   这里没有 opencli / agent-reach CLI / 桌面 Chrome，**不要**跑 `agent-reach doctor`、不要去装 opencli。
+   - 需要浏览器或登录态的平台（抖音/小红书/快手/B站网页等）一律改用容器自带的 **`agent-browser`**：
+     `opencli browser X open <url>` → `agent-browser open <url>`；`opencli browser X eval "<js>"` → `agent-browser eval "<js>"`。
+   - 登录态：用户在 LuckyClaw「设置 → 浏览器登录」里登录过的网站，`agent-browser` 启动时已自动带上
+     （存在 `/workspace/browser-profile-seed/Default` 即有）。没登录过就请用户先去那里扫码登录，别用裸 curl 硬抓。
+   - 搜索/网页阅读照旧（`curl -s "https://r.jina.ai/URL"` 等不依赖本机的命令可直接用）；下载按
+     [references/download.md](references/download.md) 各平台的「LuckyClaw 容器」小节。
 
 ## 路由表
 
