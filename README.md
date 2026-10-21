@@ -1,6 +1,6 @@
 # agent-reach-plus
 
-在 [agent-reach](https://github.com/Panniantong/agent-reach) 基础上做的**增强分发版**:加了**抖音、快手渠道**,并打包成一键安装的 skill,给（用 Claude Code / 兼容 agent 的）人开箱即用。
+在 [agent-reach](https://github.com/Panniantong/agent-reach) 基础上做的**增强分发版**:加了**抖音、快手渠道**和可选的**无头采集浏览器**（采集不再占用你的日常 Chrome）,并打包成一键安装的 skill,给（用 Claude Code / 兼容 agent 的）人开箱即用。
 
 > **致谢与许可**:本项目是 agent-reach（作者 Agent Eyes，MIT 协议）的衍生增强版,遵循 MIT。原始版权与协议见 [LICENSE](./LICENSE)。本仓库新增的部分（抖音/快手渠道、install.sh、文档）同样以 MIT 开源。
 
@@ -103,6 +103,43 @@ curl -L -H "Referer: https://www.douyin.com/" -H "User-Agent: Mozilla/5.0..." "<
 2. cookie 全 HttpOnly，登录态以接口返回 `result == 1` 为准；
 3. `photoUrl` 是 CDN 直链，**裸 curl 可下载**（UA+Referer 即可，无需 cookie，比抖音宽松），下载流程见 [skill/references/download.md](skill/references/download.md)。
 
+## 无头采集浏览器（可选，推荐）
+
+默认情况下，抖音 / 小红书 / B站 / Twitter / Reddit / 雪球 / 快手这些 OpenCLI 渠道，是借你**日常 Chrome** 里的扩展和登录态去干活的——agent 一跑，你正在用的浏览器就被开标签、抢焦点。
+
+`agent-reach-browser` 给它们单独配一个**后台无头浏览器**：
+
+- 独立的 Chromium + 独立账号目录 + OpenCLI 扩展，开机自启、崩了自动拉起，**不显示窗口，不碰你的日常 Chrome**；
+- 设为 OpenCLI 默认 profile，所以所有 `opencli ...` 命令**一个字不用改**；
+- 登录失效 / 遇到验证码时 `login` 弹一次窗口，处理完关掉，自动回到无头。
+
+```bash
+bash install.sh --with-browser                       # 或已装过的话：agent-reach-browser setup
+bash install.sh --with-browser --proxy http://127.0.0.1:7890   # 要用 X / Reddit（国内需代理）时
+
+# 在它里面登录要用的平台（一次即可，登录态保存在 ~/.agent-reach/browser-profile）
+agent-reach-browser login https://www.douyin.com https://www.xiaohongshu.com https://passport.bilibili.com/login
+```
+
+| 命令 | 作用 |
+|---|---|
+| `agent-reach-browser status` | 是否在跑、OpenCLI 是否连上、代理 |
+| `agent-reach-browser login [URL...]` | 弹窗口登录 / 过验证，关窗自动回无头 |
+| `agent-reach-browser restart` | 报 `profile is not connected` 时用 |
+| `agent-reach-browser cookies <域名> [--netscape]` | 导出 Cookie（`--netscape` 给 `yt-dlp --cookies` 用） |
+| `agent-reach-browser sync-xueqiu` | 把雪球登录同步给 agent-reach 的雪球 API 渠道 |
+| `agent-reach-browser uninstall` | 移除后台服务（账号目录保留） |
+
+**几个实测出来的设计点**（2026-10，macOS）：
+
+- 浏览器用 Playwright 的 Chromium / Chrome for Testing：正式版 Google Chrome 137+ 禁止命令行加载扩展。
+- 扩展从 OpenCLI 官方 release 自动下载，版本跟本机 `opencli --version` 对齐。
+- 无头模式默认 UA 带 `HeadlessChrome`，抖音会直接给验证码页；已换成同版本普通 Chrome UA 并关闭 `AutomationControlled`，抖音正常。
+- `--proxy` 只让海外域名（X / Reddit / YouTube / Google 人机验证等）走代理，国内站直连，避免海外出口触发国内平台风控。Google / reCAPTCHA 必须在代理名单里，否则 Reddit 登录页会报「请禁用扩展或换浏览器」。域名列表可在 `~/.agent-reach/browser.json` 的 `proxyDomains` 里改。
+- 为什么不用 Lightpanda 这类非 Chromium 的无头浏览器：实测带登录态时小红书页面脚本卡死、抖音直接给验证码页，且它禁止伪装 UA。
+
+**验证状态**：macOS 已端到端实测——抖音 / 小红书 / B站 / X / Reddit / 雪球搜索全部通过，登录弹窗、强杀自愈、Cookie 导出均通过。快手登录有效，但网页版搜索接口目前返回 `result=50`（有窗口模式同样失败，属快手渠道本身的问题，在修）。Linux（systemd 用户服务）、Windows（计划任务）代码已写、**未实测**；Linux 无桌面的服务器没法弹登录窗口，需在有桌面的机器登录后拷账号目录。
+
 ## 维护说明
 
 - 抖音/快手渠道靠 `patches/apply.py` 注入到已安装的 agent-reach。**`agent-reach` 升级后重跑一次** `patches/apply.py`（用 agent-reach 的 venv python，如 `~/.local/pipx/venvs/agent-reach/bin/python patches/apply.py`）即可恢复。
@@ -121,6 +158,8 @@ agent-reach-plus/
 ├── README.md
 ├── LICENSE             原始 MIT（Agent Eyes）
 ├── skill/              SKILL.md + references（含抖音/快手 + download 下载流程）
+├── browser/
+│   └── agent-reach-browser.mjs   无头采集浏览器（可选，install.sh --with-browser）
 └── patches/
     ├── douyin.py       抖音渠道源码
     ├── kuaishou.py     快手渠道源码

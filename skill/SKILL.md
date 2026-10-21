@@ -65,6 +65,15 @@ metadata:
      （存在 `/workspace/browser-profile-seed/Default` 即有）。没登录过就请用户先去那里扫码登录，别用裸 curl 硬抓。
    - 搜索/网页阅读照旧（`curl -s "https://r.jina.ai/URL"` 等不依赖本机的命令可直接用）；下载按
      [references/download.md](references/download.md) 各平台的「LuckyClaw 容器」小节。
+7. **装了无头采集浏览器时**（判定：`agent-reach-browser status` 显示「OpenCLI：… connected」）：
+   OpenCLI 默认就走这个后台无头浏览器，`opencli ...` 命令**原样照用**。references 里凡是写
+   「要求 Chrome 打开」「让用户在 Chrome 登录」「`--cookies-from-browser chrome`」的地方，一律换成：
+   - 不用开日常 Chrome，**也不要让用户去日常 Chrome 登录**——那里的登录态这条链路用不到。
+   - 报未登录 / AUTH_REQUIRED / 验证码页 → 让用户跑 `agent-reach-browser login <该站URL>`（弹一次窗口，登完关掉自动回无头）。
+   - 报 `Browser profile "…" is not connected` → `agent-reach-browser restart`；仍不行看 `~/.agent-reach/browser.log`。
+   - 刚重启后第一次调用偶尔超时（页面冷启动）→ **先原样重试一次**再排查。
+   - 需要 cookie 文件的工具（yt-dlp 下 X 视频等）：`agent-reach-browser cookies x.com --netscape > /tmp/x.txt`，再 `--cookies /tmp/x.txt`。
+   - 雪球 API 渠道报 400：`agent-reach-browser sync-xueqiu`（别用 `configure --from-browser chrome`，那会重新绑回日常 Chrome）。
 
 ## 路由表
 

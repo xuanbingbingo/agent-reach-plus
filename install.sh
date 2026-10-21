@@ -4,6 +4,17 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# 可选：--with-browser 额外装「无头采集浏览器」（OpenCLI 渠道不再借用日常 Chrome）
+#       --proxy URL     海外站（X/Reddit/Google 验证等）走的代理，如 http://127.0.0.1:7890；国内站始终直连
+WITH_BROWSER=0; BROWSER_PROXY=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --with-browser) WITH_BROWSER=1; shift ;;
+    --proxy) BROWSER_PROXY="${2:-}"; shift 2 ;;
+    *) echo "未知参数：$1（可用：--with-browser [--proxy URL]）"; exit 1 ;;
+  esac
+done
+
 # —— Windows 守卫：本脚本是 bash，面向 macOS / Linux / WSL ——
 case "$(uname -s 2>/dev/null)" in
   MINGW*|MSYS*|CYGWIN*)
@@ -139,6 +150,40 @@ mkdir -p "$DEST/references"
 cp "$HERE/skill/SKILL.md" "$DEST/SKILL.md"
 cp "$HERE"/skill/references/*.md "$DEST/references/"
 
+# 无头采集浏览器的程序总是装上（很小），是否启用由 --with-browser 决定
+BR_DIR="$HOME/.agent-reach/browser"
+mkdir -p "$BR_DIR" "$HOME/.agent-reach/bin" "$HOME/.local/bin"
+cp "$HERE/browser/agent-reach-browser.mjs" "$BR_DIR/"
+printf '#!/bin/sh\nexec node "%s/agent-reach-browser.mjs" "$@"\n' "$BR_DIR" > "$HOME/.agent-reach/bin/agent-reach-browser"
+chmod +x "$HOME/.agent-reach/bin/agent-reach-browser"
+ln -sf "$HOME/.agent-reach/bin/agent-reach-browser" "$HOME/.local/bin/agent-reach-browser"
+
+if [ "$WITH_BROWSER" = "1" ]; then
+  echo "▶ 附加：安装无头采集浏览器"
+  if have node && have opencli; then
+    "$HOME/.agent-reach/bin/agent-reach-browser" setup ${BROWSER_PROXY:+--proxy "$BROWSER_PROXY"} \
+      || echo "  ⚠️ 无头浏览器安装失败，可稍后单独跑：agent-reach-browser setup"
+  else
+    echo "  ⚠️ 缺 node 或 opencli，跳过。补齐后跑：agent-reach-browser setup"
+  fi
+fi
+
+if [ "$WITH_BROWSER" = "1" ]; then cat <<'EOF'
+
+✅ 安装完成（含无头采集浏览器）。还需你本人做：
+
+  1) 在无头浏览器里登录要用的平台（弹一次窗口，登完关掉即回后台无头）：
+     agent-reach-browser login https://www.douyin.com https://www.xiaohongshu.com https://passport.bilibili.com/login https://x.com/i/flow/login
+     （不用装 Chrome 扩展、不用开日常 Chrome）
+     雪球：再 login https://xueqiu.com，然后 agent-reach-browser sync-xueqiu
+
+  2) （可选）转写要 Groq key：agent-reach configure groq-key gsk_xxx
+
+验证：agent-reach-browser status；opencli douyin search "AI" -f json
+EOF
+exit 0
+fi
+
 cat <<'EOF'
 
 ✅ 安装完成。还有 3 件必须你本人手动做（脚本无法替代）：
@@ -160,4 +205,8 @@ cat <<'EOF'
   「帮我下载这个链接的视频 <粘贴 YouTube/B站/小红书/抖音/快手 链接>」
   → 自动认平台、选工具、下到本地。
   （B站合流需系统装 ffmpeg：brew install ffmpeg / apt install ffmpeg）
+
+不想让采集打开/占用你的日常 Chrome？装无头采集浏览器：
+  agent-reach-browser setup [--proxy http://127.0.0.1:7890]
+  （或重跑 bash install.sh --with-browser）
 EOF

@@ -106,6 +106,14 @@ New-Item -ItemType Directory -Force -Path (Join-Path $dest 'references') | Out-N
 Copy-Item (Join-Path $HERE 'skill\SKILL.md') (Join-Path $dest 'SKILL.md') -Force
 Copy-Item (Join-Path $HERE 'skill\references\*.md') (Join-Path $dest 'references\') -Force
 
+# 无头采集浏览器（可选；Windows 未实测）：程序先装上，启用需手动 setup
+$brDir = Join-Path $env:USERPROFILE '.agent-reach\browser'
+New-Item -ItemType Directory -Force -Path $brDir | Out-Null
+Copy-Item (Join-Path $HERE 'browser\agent-reach-browser.mjs') $brDir -Force
+$brCmd = Join-Path $env:USERPROFILE '.agent-reach\bin\agent-reach-browser.cmd'
+New-Item -ItemType Directory -Force -Path (Split-Path $brCmd) | Out-Null
+Set-Content -Path $brCmd -Encoding ASCII -Value "@node `"$brDir\agent-reach-browser.mjs`" %*"
+
 Write-Host ""
 Write-Host "完成。还有 3 件必须手动做：" -ForegroundColor Green
 Write-Host "  1) 装 OpenCLI 的 Chrome 扩展（点一次）：https://chromewebstore.google.com/detail/opencli/ildkmabpimmkaediidaifkhjpohdnifk"
@@ -113,3 +121,4 @@ Write-Host "  2) 在 Chrome 登录要用的平台（抖音/快手/小红书/Twit
 Write-Host "  3) （可选）转写要免费 Groq key：https://console.groq.com  ->  agent-reach configure groq-key gsk_xxx"
 Write-Host "验证：agent-reach doctor --json（抖音、快手应 status: ok）"
 Write-Host "提示：若 agent-reach / python 命令找不到，重开一个 PowerShell 窗口再试（PATH 需刷新）。"
+Write-Host "可选：不想让采集占用日常 Chrome → $brCmd setup（后台无头浏览器；Windows 版未实测，见 README）"
