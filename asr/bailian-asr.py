@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""bailian-asr · 阿里云百炼录音文件转写（默认 fun-asr，大陆直连）
+"""bailian-asr · 阿里云百炼录音文件转写（默认 paraformer-v2，大陆直连）
 
 本地音频/视频 → 文字。流程：ffmpeg 压成 16k 单声道 mp3 → 传到百炼临时存储
 （免自备 OSS，48 小时自动删）→ 异步提交转写 → 轮询 → 取结果。
 单文件最长 12 小时，不用切段。只依赖 Python 标准库 + ffmpeg。
 
 模型（新用户各送 10 小时）：
-  fun-asr        ¥0.00022/秒 ≈ 0.79 元/小时  默认；中英混杂准（Claude Code / AI 不会听错）
-  paraformer-v2  ¥0.00008/秒 ≈ 0.29 元/小时  便宜，但英文专名常错（Claude Code→cloud code）
+  paraformer-v2  ¥0.00008/秒 ≈ 0.29 元/小时  默认（2026-10-28 用户定）；英文专名偶尔听错（Claude Code→cloud code）
+  fun-asr        ¥0.00022/秒 ≈ 0.79 元/小时  中英混杂更准，需要时 --model fun-asr
 
 用法:
-    bailian-asr <音频或视频文件> [-o 输出] [--format text|srt|json] [--model fun-asr|paraformer-v2]
+    bailian-asr <音频或视频文件> [-o 输出] [--format text|srt|json] [--model paraformer-v2|fun-asr]
 
 Key 读取顺序：环境变量 DASHSCOPE_API_KEY > ~/.agent-reach/config.yaml 的 dashscope_api_key
 退出码：0 成功；2 缺 key / 参数错；3 上传失败；4 转写失败
@@ -171,7 +171,7 @@ def main():
     ap.add_argument("source", help="本地音频或视频文件")
     ap.add_argument("-o", "--output", help="写到文件（默认打印到 stdout）")
     ap.add_argument("--format", choices=["text", "srt", "json"], default="text")
-    ap.add_argument("--model", default=os.environ.get("BAILIAN_ASR_MODEL", "fun-asr"))
+    ap.add_argument("--model", default=os.environ.get("BAILIAN_ASR_MODEL", "paraformer-v2"))
     ap.add_argument("--timeout", type=int, default=1800, help="等结果的最长秒数")
     a = ap.parse_args()
 

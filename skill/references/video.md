@@ -82,8 +82,8 @@ bailian-asr ./video.mp4 --format srt -o /tmp/sub.srt
 ```
 
 > **百炼（主通道，agent-reach-plus 补丁）**：`~/.agent-reach/config.yaml` 写一行 `dashscope_api_key: sk-xxx`
-> （百炼控制台 → API Key）。默认 `fun-asr` ≈0.79 元/小时，中英混杂准；`BAILIAN_ASR_MODEL=paraformer-v2`
-> 降到 ≈0.29 元/小时但英文专名常错（Claude Code→cloud code）。新用户各送 10 小时。单文件最长 12 小时，不切段。
+> （百炼控制台 → API Key）。默认 `paraformer-v2` ≈0.29 元/小时；需要中英混杂更准时 `BAILIAN_ASR_MODEL=fun-asr`
+> （≈0.79 元/小时，Claude Code 这类英文专名不易听错）。新用户各送 10 小时。单文件最长 12 小时，不切段。
 > 大陆直连、不走代理；欠费报错去 bailian.console.aliyun.com 看。
 >
 > 以下为 Groq 兜底（没配百炼或百炼失败时才用）：`agent-reach configure groq-key gsk_xxx`（免费，console.groq.com）
