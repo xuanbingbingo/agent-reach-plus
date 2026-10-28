@@ -3,7 +3,8 @@
 """agent-reach-plus · 渠道补丁注入器
 
 把本目录下的渠道源码（douyin.py / kuaishou.py）复制进已安装的
-agent_reach.channels，并在 channels/__init__.py 里幂等注册。
+agent_reach.channels，并在 channels/__init__.py 里幂等注册；
+再用 transcribe.py / transcribe_xiaoyuzhou.sh 覆盖上游转写（加百炼 provider）。
 `agent-reach` 升级/重装后重跑本脚本即可恢复。
 
 用法:
@@ -77,7 +78,34 @@ def main():
     else:
         print("ℹ️  __init__.py 均已注册过，跳过")
 
+    patch_transcribe(ch.parent)
+
     print("\n完成。验证：agent-reach doctor --json")
+
+
+def patch_transcribe(pkg: Path):
+    """转写改走阿里云百炼：覆盖 transcribe.py、小宇宙脚本，CLI 放开 --provider bailian。"""
+    shutil.copyfile(HERE / "transcribe.py", pkg / "transcribe.py")
+    print(f"✅ 已写入 {pkg / 'transcribe.py'}")
+
+    xyz = HERE / "transcribe_xiaoyuzhou.sh"
+    shutil.copyfile(xyz, pkg / "scripts" / "transcribe_xiaoyuzhou.sh")
+    installed = Path.home() / ".agent-reach" / "tools" / "xiaoyuzhou" / "transcribe.sh"
+    if installed.parent.is_dir():
+        shutil.copyfile(xyz, installed)
+        installed.chmod(0o755)
+        print(f"✅ 已写入 {installed}")
+
+    cli = pkg / "cli.py"
+    text = cli.read_text(encoding="utf-8")
+    old = 'choices=["auto", "groq", "openai"]'
+    if old in text:
+        text = text.replace(old, 'choices=["auto", "bailian", "groq", "openai"]', 1)
+        text = text.replace("(default: auto = groq → openai fallback)", "(default: auto = bailian → groq → openai)", 1)
+        cli.write_text(text, encoding="utf-8")
+        print(f"✅ 已更新 {cli}（--provider bailian）")
+    elif '"bailian"' not in text:
+        print("⚠️  cli.py 没找到 --provider 选项，上游结构可能已变，transcribe 仍会按 auto 先走百炼")
 
 
 if __name__ == "__main__":

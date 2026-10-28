@@ -144,6 +144,13 @@ if [ ! -x "$VENV_PY" ]; then
 fi
 "$VENV_PY" "$HERE/patches/apply.py"
 
+# 百炼语音转写（agent-reach transcribe / 小宇宙 / 其它 skill 共用）
+mkdir -p "$HOME/.agent-reach/bin" "$HOME/.local/bin"
+cp "$HERE/asr/bailian-asr.py" "$HOME/.agent-reach/bin/bailian-asr"
+chmod +x "$HOME/.agent-reach/bin/bailian-asr"
+ln -sf "$HOME/.agent-reach/bin/bailian-asr" "$HOME/.local/bin/bailian-asr"
+echo "  ✅ bailian-asr → ~/.agent-reach/bin/bailian-asr（key 写进 ~/.agent-reach/config.yaml 的 dashscope_api_key）"
+
 echo "▶ 6/6 部署 skill → ~/.claude/skills/agent-reach/"
 DEST="$HOME/.claude/skills/agent-reach"
 mkdir -p "$DEST/references"

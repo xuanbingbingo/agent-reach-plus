@@ -70,15 +70,23 @@ yt-dlp --dump-json "ytsearch5:query"
 > **字幕注意**: 手动上传的字幕提取可靠；自动生成字幕可能存在行间重复，需后处理。
 > **评论注意**: `--write-comments` 基于网页抓取（非 YouTube Data API），部分评论可能丢失。
 
-### 无字幕兜底：Whisper 音频转写
+### 无字幕兜底：音频转写（默认阿里云百炼，大陆直连）
 
 ```bash
-# 视频没有字幕时的兜底：下载音频并用 Whisper 转写（Groq 免费 key 即可）
+# 视频没有字幕时的兜底：下载音频并转写。auto = 百炼 → Groq → OpenAI
 agent-reach transcribe "https://www.youtube.com/watch?v=VIDEO_ID"
 agent-reach transcribe ./local_audio.mp3 -o /tmp/transcript.txt
+# 本地音视频直接转写，也可用底层工具（要带时间轴就 --format srt）
+bailian-asr ./audio.mp3 -o /tmp/transcript.txt
+bailian-asr ./video.mp4 --format srt -o /tmp/sub.srt
 ```
 
-> 需要先配置 key：`agent-reach configure groq-key gsk_xxx`（免费，console.groq.com）
+> **百炼（主通道，agent-reach-plus 补丁）**：`~/.agent-reach/config.yaml` 写一行 `dashscope_api_key: sk-xxx`
+> （百炼控制台 → API Key）。默认 `fun-asr` ≈0.79 元/小时，中英混杂准；`BAILIAN_ASR_MODEL=paraformer-v2`
+> 降到 ≈0.29 元/小时但英文专名常错（Claude Code→cloud code）。新用户各送 10 小时。单文件最长 12 小时，不切段。
+> 大陆直连、不走代理；欠费报错去 bailian.console.aliyun.com 看。
+>
+> 以下为 Groq 兜底（没配百炼或百炼失败时才用）：`agent-reach configure groq-key gsk_xxx`（免费，console.groq.com）
 >
 > 🔴 **大陆网络下 Groq 也必须挂代理**：直连 `api.groq.com` 必返 `HTTP 403 Forbidden`，与 key 是否有效无关。
 > 🔴 `agent-reach doctor` 报 youtube `ok / 可转写音频（groq）` **不代表转录能跑通**——
@@ -87,8 +95,7 @@ agent-reach transcribe ./local_audio.mp3 -o /tmp/transcript.txt
 > HTTPS_PROXY=http://HOST:PORT HTTP_PROXY=http://HOST:PORT \
 >   agent-reach transcribe ./audio.mp3 -o /tmp/transcript.txt
 > ```
-> agent-reach 只吐纯文本；要**带时间轴的 SRT**，直接打 Groq 要 `verbose_json` 再自行拼
-> （key 在 `~/.agent-reach/config.yaml` 的 `groq_api_key`）。
+> agent-reach 只吐纯文本；要**带时间轴的 SRT** 用 `bailian-asr --format srt`。
 > 或 `agent-reach configure openai-key sk-xxx`。默认 auto 模式：groq 失败自动降级 openai。
 
 ## B站 / Bilibili（bili-cli 为主，OpenCLI 补字幕）
@@ -143,13 +150,14 @@ curl -s -b /tmp/bili_ck.txt -A "$UA" -e "https://www.bilibili.com/" \
 ~/.agent-reach/tools/xiaoyuzhou/transcribe.sh --polish "https://www.xiaoyuzhoufm.com/episode/EPISODE_ID"
 ```
 
-> 转写 prompt 已要求 Whisper 输出中文标点；若标点效果仍不理想，可加 `--polish` 用 Groq 上免费的 Llama 3.3 70B 补标点+合理分段（9 分钟播客约多 ~7 秒）。每次转写多一轮 LLM 调用，按需使用。
+> 配了百炼就整段走百炼（自带标点，不切片）；没配才走 Groq Whisper。
+> 走 Groq 时若标点效果不理想，可加 `--polish` 用 Groq 上免费的 Llama 3.3 70B 补标点+合理分段（9 分钟播客约多 ~7 秒）。每次转写多一轮 LLM 调用，按需使用。
 
 ### 前置要求
 
 1. **ffmpeg**: `brew install ffmpeg`
-2. **Groq API Key** (免费): https://console.groq.com/keys
-3. **配置 Key**: `agent-reach configure groq-key YOUR_KEY`
+2. **百炼 Key**：`~/.agent-reach/config.yaml` 写 `dashscope_api_key: sk-xxx`（推荐，大陆直连）
+3. 或 **Groq Key**（免费，要挂代理）：`agent-reach configure groq-key YOUR_KEY`
 4. **首次运行**: `agent-reach install --env=auto` 安装工具
 
 ### 检查状态
